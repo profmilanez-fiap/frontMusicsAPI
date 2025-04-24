@@ -4,9 +4,8 @@ WORKDIR /app
 COPY . .
 RUN mvn clean package -DskipTests
 
-# Etapa 2: Executar o JAR gerado
-FROM openjdk:17-jdk-slim
+# Etapa 2: Rodar o WAR com Tomcat
+FROM tomcat:9-jdk17
 WORKDIR /app
-COPY --from=build /app/target/frontmusics-0.0.1-SNAPSHOT.war app.war
+COPY --from=build /app/target/frontmusics-0.0.1-SNAPSHOT.war /usr/local/tomcat/webapps/ROOT.war
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.war"]

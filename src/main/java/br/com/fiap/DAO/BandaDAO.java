@@ -1,6 +1,7 @@
 	package br.com.fiap.DAO;
 
 import java.sql.*;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,7 +49,7 @@ public class BandaDAO {
         List<BandaTO> bandas = new ArrayList<>();
 
         String sql = "SELECT banda.id, banda.banda, banda.descricao, " + 
-        			 "banda.integrantes, banda.links, banda.slug, banda.imagem, banda.exibir,  " + 
+        			 "banda.integrantes, banda.links, banda.slug, banda.imagem, banda.exibir, " +
         			 "banda.categoria, estilo.estilo AS categoria " +
         			 "FROM banda " +
         			 "INNER JOIN estilo ON banda.categoria = estilo.id " +
@@ -133,18 +134,28 @@ public class BandaDAO {
     }
     
     public boolean atualizarBanda(int id, BandaTO banda) {
+        String link = buscarLinkPorCategoria(banda.getCategoria());
         String sql = "UPDATE banda SET banda = ?, descricao = ?, integrantes = ?, links = ?, " +
                      "slug = ?, imagem = ?, exibir = ?, categoria = ? WHERE id = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
+            String baseSlug = banda.getBanda();
+            String slug = Normalizer.normalize(baseSlug, Normalizer.Form.NFD)
+                    .replaceAll("\\p{InCombiningDiacriticalMarks}+", "") // Remove acentos
+                    .toLowerCase()
+                    .replaceAll("[\\s,]+", "-")                          // Substitui espaços e vírgulas por hífens
+                    .replaceAll("[^a-z0-9-]", "")                        // Remove caracteres especiais
+                    .replaceAll("[-]{2,}", "-")                          // Substitui múltiplos hífens por um só
+                    .replaceAll("^-|-$", "");
+
             // Definir os parâmetros para a consulta SQL
             ps.setString(1, banda.getBanda());
             ps.setString(2, banda.getDescricao());
             ps.setString(3, banda.getIntegrantes());
-            ps.setString(4, banda.getLinks());
-            ps.setString(5, banda.getSlug());
+            ps.setString(4, link);
+            ps.setString(5, slug);
             ps.setString(6, banda.getImagem());
             ps.setInt(7, banda.getExibir());
             ps.setInt(8, Integer.parseInt(banda.getCategoria())); // Definir o ID da categoria
@@ -169,13 +180,15 @@ public class BandaDAO {
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-        	String baseSlug = banda.getBanda();
 
-	        // Substitui espaços e vírgulas por hífens e transforma em minúsculas
-	        String slug = baseSlug
-	                .toLowerCase()
-	                .replace(" ", "-")
-	                .replace(",", "-");
+            String baseSlug = banda.getBanda();
+            String slug = Normalizer.normalize(baseSlug, Normalizer.Form.NFD)
+                    .replaceAll("\\p{InCombiningDiacriticalMarks}+", "") // Remove acentos
+                    .toLowerCase()
+                    .replaceAll("[\\s,]+", "-")                          // Substitui espaços e vírgulas por hífens
+                    .replaceAll("[^a-z0-9-]", "")                        // Remove caracteres especiais
+                    .replaceAll("[-]{2,}", "-")                          // Substitui múltiplos hífens por um só
+                    .replaceAll("^-|-$", "");
             ps.setString(1, banda.getBanda());
             ps.setString(2, banda.getDescricao());
             ps.setString(3, banda.getIntegrantes());

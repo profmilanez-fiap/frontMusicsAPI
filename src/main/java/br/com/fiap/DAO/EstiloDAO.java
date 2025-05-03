@@ -3,6 +3,7 @@ package br.com.fiap.DAO;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.text.Normalizer;
 
 import br.com.fiap.TO.EstiloTO;
 import br.com.fiap.factory.ConnectionFactory;
@@ -67,7 +68,13 @@ public class EstiloDAO {
             String estiloValue = estilo.getEstilo();  // Pegando o valor do campo 'estilo'
             
             // Se 'estilo' contém um espaço, substituímos por hífen ('-')
-            String linksValue = estiloValue.replace(" ", "-");
+            //String linksValue = estiloValue.replace(" ", "-");
+            // Gera o campo "links" limpo e com hífens
+            String linksValue = Normalizer.normalize(estiloValue, Normalizer.Form.NFD)
+                    .replaceAll("\\p{InCombiningDiacriticalMarks}", "")
+                    .toLowerCase()
+                    .replace(",", "-")
+                    .replace(" ", "-");
 
             // Definindo os valores dos parâmetros
             stmt.setString(1, linksValue);  // 'links' recebe a versão modificada (sem espaços)
@@ -123,7 +130,15 @@ public class EstiloDAO {
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, estilo.getLinks());
+            String estiloValue = estilo.getEstilo();
+            // Gera o campo "links" limpo e com hífens
+            String linksValue = Normalizer.normalize(estiloValue, Normalizer.Form.NFD)
+                    .replaceAll("\\p{InCombiningDiacriticalMarks}", "")
+                    .toLowerCase()
+                    .replace(",", "-")
+                    .replace(" ", "-");
+
+            stmt.setString(1, linksValue);
             stmt.setString(2, estilo.getEstilo());
             stmt.setInt(3, estilo.getExibir());
             stmt.setInt(4, estilo.getId());

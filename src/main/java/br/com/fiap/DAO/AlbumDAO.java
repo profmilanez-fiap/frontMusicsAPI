@@ -1,6 +1,7 @@
 package br.com.fiap.DAO;
 
 import java.sql.*;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -194,7 +195,7 @@ public class AlbumDAO {
 	    }
 	    return album;
 	}
-	
+
 	public static boolean cadastrarAlbum(AlbumTO album) {
 	    //String slug = gerarSlug(album.getAlbum());
 	    String linkSlug = buscarLinkPorCategoria(album.getCategoria()); // 👈 Pega o "links" da tabela estilo
@@ -204,14 +205,15 @@ public class AlbumDAO {
 
 	    try (Connection conn = ConnectionFactory.getConnection();
 	        PreparedStatement stmt = conn.prepareStatement(sql)) {
-	    	
-	    	String baseSlug = album.getAlbum();
 
-	        // Substitui espaços e vírgulas por hífens e transforma em minúsculas
-	        String slug = baseSlug
-	                .toLowerCase()
-	                .replace(" ", "-")
-	                .replace(",", "-");
+			String baseSlug = album.getAlbum();
+			String slug = Normalizer.normalize(baseSlug, Normalizer.Form.NFD)
+					.replaceAll("\\p{InCombiningDiacriticalMarks}+", "") // Remove acentos
+					.toLowerCase()
+					.replaceAll("[\\s,]+", "-")                          // Substitui espaços e vírgulas por hífens
+					.replaceAll("[^a-z0-9-]", "")                        // Remove caracteres especiais
+					.replaceAll("[-]{2,}", "-")                          // Substitui múltiplos hífens por um só
+					.replaceAll("^-|-$", "");
 
 	        stmt.setString(1, album.getAlbum());
 	        stmt.setString(2, album.getImagem());
@@ -232,7 +234,7 @@ public class AlbumDAO {
 	        return false;
 	    }
 	}
-	
+
 	public boolean excluir(Integer id) {
 	    String sql = "UPDATE album SET exibir = 0 WHERE id = ?";
 
@@ -270,12 +272,22 @@ public class AlbumDAO {
 	    
 	    return ""; // ou null, dependendo do que preferir
 	}
-	
+
 	public boolean atualizar(AlbumTO album) {
 	    String sql = "UPDATE album SET album = ?, imagem = ?, categoria = ?, links = ?, lancamento = ?, exibir = ?, faixas = ?, descricao = ?, idbanda = ?, slug = ? WHERE id = ?";
 
 	    try (Connection conn = ConnectionFactory.getConnection();
 	         PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+			// Slug gerado a partir do título
+			String baseSlug = album.getAlbum();
+			String slug = Normalizer.normalize(baseSlug, Normalizer.Form.NFD)
+					.replaceAll("\\p{InCombiningDiacriticalMarks}+", "") // Remove acentos
+					.toLowerCase()
+					.replaceAll("[\\s,]+", "-")                          // Substitui espaços e vírgulas por hífens
+					.replaceAll("[^a-z0-9-]", "")                        // Remove caracteres especiais
+					.replaceAll("[-]{2,}", "-")                          // Substitui múltiplos hífens por um só
+					.replaceAll("^-|-$", "");
 
 	        stmt.setString(1, album.getAlbum());
 	        stmt.setString(2, album.getImagem());
@@ -286,9 +298,6 @@ public class AlbumDAO {
 	        stmt.setString(7, album.getFaixas());
 	        stmt.setString(8, album.getDescricao());
 	        stmt.setInt(9, album.getBanda());
-
-	        // Slug gerado a partir do título
-	        String slug = album.getAlbum().toLowerCase().replace(" ", "-").replace(",", "-");
 	        stmt.setString(10, slug);
 
 	        stmt.setInt(11, album.getId());
@@ -303,7 +312,7 @@ public class AlbumDAO {
 		       ConnectionFactory.close(conn, stmt, rs);
 		    }
 	}
-	
+
 	public AlbumTO buscarAlbumAtualizar(String slug) {
 	    AlbumTO to = null;
 	    Connection conn = null;
